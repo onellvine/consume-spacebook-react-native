@@ -1,48 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, FlatList, View, Text } from 'react-native';
+
+import { useIsFocused } from "@react-navigation/native";
 
 import Friend from '../../components/friends/Friend';
 import colors from '../../constants/colors';
+import objects from '../../constants/objects';
+import axiosInstance from '../../constants/axiosInstance';
 
 /*
 * This screen will list all oustanding friend requests
 * and allow the user to accept such requests
 */
 
-const FriendRequests = ({navigation}) => {
+const FriendRequests = ({navigation, route}) => {
+  const isFocused = useIsFocused();
+  let user_id = route.params.user_id > 0 ? route.params.user_id : 0;
+  const [friends, setFriends] = useState(objects.friends);
 
-  const [friends, setFriends] = useState([
-    {
-        "user_id": 8,
-        "user_givenname": "Mayor",
-        "user_familyname": "Luke",
-        "user_email": "mayor.luke@mmu.ac.uk"
-    },
-    {
-        "user_id": 9,
-        "user_givenname": "James",
-        "user_familyname": "Harden",
-        "user_email": "mayor.luke@mmu.ac.uk"
-    },
-    {
-        "user_id": 10,
-        "user_givenname": "Gabe",
-        "user_familyname": "Alexander",
-        "user_email": "mayor.luke@mmu.ac.uk"
-    },
-    {
-        "user_id": 11,
-        "user_givenname": "Mitchell",
-        "user_familyname": "Fiyori",
-        "user_email": "mayor.luke@mmu.ac.uk"
-    },
-    {
-        "user_id": 12,
-        "user_givenname": "Control",
-        "user_familyname": "Room",
-        "user_email": "mayor.luke@mmu.ac.uk"
-    },
-  ]);
+  // procedure to get friends from API
+  useEffect(async () => {
+    if(isFocused) {
+      if(user_id != 0) {
+        await axiosInstance
+            .get("/friendrequests")
+            .then(response => {
+                console.log(response.data);
+                setFriends(response.data);
+            })
+            .catch(error => {
+                console.log(error);
+                alert("FriendRqeuests Error: "+error);
+            });
+      }
+    }
+
+  }, [isFocused]);  
 
   const ListHeader = () => {
     return (

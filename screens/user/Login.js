@@ -2,18 +2,45 @@ import React from 'react';
 import { StyleSheet, View, Text, TextInput, ScrollView } from 'react-native';
 
 import { Formik } from 'formik';
+import * as SecureStore from 'expo-secure-store';
 
 import colors from '../../constants/colors';
 import Buttonx from '../../components/common/Buttonx';
+import axiosInstance from '../../constants/axiosInstance';
 
 const Login = ({navigation}) => {
   return (
-    <ScrollView style={styles.containerFluid}>
+    <ScrollView style={styles.containerFluid} keyboardShouldPersistTaps={'handled'}>
         <View style={styles.container}>
         <Text style={styles.title}>Login to Account</Text>
         <Formik
             initialValues={{ email: '', password: '' }}
-            onSubmit={values => console.log(values)}
+            onSubmit={async (values, actions) => {
+                const user = JSON.stringify({
+                    "email": values.email,
+                    "password": values.password
+                });
+
+                await axiosInstance
+                    .post("/login", user)
+                    .then(async (response) => {
+                        const token = response.data.token;
+                        const user_id = response.data.id;
+                        await SecureStore.setItemAsync('token', token);
+                        await SecureStore.setItemAsync('user_id', user_id.toString());
+                        axiosInstance.defaults.headers['X-Authorization'] = token;
+
+                        // send user id to retrieve their posts by default
+                        navigation.navigate('AllPosts', {user_id: user_id});
+                        
+                    })
+                    .catch(error => {
+                        console.log(error);
+                        alert("Login Error: "+error);
+                    });
+                
+                //actions.resetForm();
+            }}
         >
             {({ handleChange, handleBlur, handleSubmit, values }) => (
                 <View>
@@ -25,6 +52,7 @@ const Login = ({navigation}) => {
                             onChangeText={handleChange('email')} 
                             onBlur={handleBlur('email')}
                             value={values.email}
+                            keyboardType='email-address'
                             />
                     </View>
                     <View style={styles.formGroup}>
@@ -45,7 +73,7 @@ const Login = ({navigation}) => {
         </Formik>
         <Text 
             style={styles.info} 
-            onPress={() => { navigation.navigate('Home')}}
+            onPress={() => {navigation.navigate('Home')}}
             > Create an account here </Text>
         <Text 
             style={styles.info} 

@@ -5,15 +5,36 @@ import { Formik } from 'formik';
 
 import colors from '../../constants/colors';
 import Buttonx from '../../components/common/Buttonx';
+import axiosInstance from '../../constants/axiosInstance';
 
 const Home = ({navigation}) => {
   return (
-    <ScrollView style={styles.containerFluid}>
+    <ScrollView style={styles.containerFluid} keyboardShouldPersistTaps={'handled'}>
         <View style={styles.container}>
         <Text style={styles.title}>Create Account</Text>
         <Formik
             initialValues={{ first_name: '', last_name: '', email: '', password: '', password1: '' }}
-            onSubmit={values => console.log(values)}
+            onSubmit={async (values, actions) => {
+                const user = JSON.stringify({
+                    "first_name": values.first_name,
+                    "last_name": values.last_name,
+                    "email": values.email,
+                    "password": values.password
+                });
+                
+                await axiosInstance
+                    .post("/user", user)
+                    .then(response => {
+                        console.log(response);
+                        navigation.navigate("Login");
+                    })
+                    .catch(error => {
+                        console.log(error);
+                        alert(error);
+                    })
+
+                //actions.resetForm();
+            }}
         >
             {({ handleChange, handleBlur, handleSubmit, values }) => (
                 <View>
@@ -45,6 +66,7 @@ const Home = ({navigation}) => {
                             onChangeText={handleChange('email')} 
                             onBlur={handleBlur('email')}
                             value={values.email}
+                            keyboardType='email-address'
                             />
                     </View>
                     <View style={styles.formGroup}>

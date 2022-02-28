@@ -4,17 +4,33 @@ import { StyleSheet, Text, TouchableOpacity, Image, View } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 
 import colors from '../../constants/colors';
+import axiosInstance from '../../constants/axiosInstance';
 
-const Friend = ({item, navigation, status}) => {
+const Friend = ({navigation, item, status}) => {
   // determine friendships to render the correct action
+  const user_id = item.user_id;
   const friendShip = (status === 'friends');
+
+  const handleAccept = async () => {
+      await axiosInstance
+        .post(`/friendrequests/${user_id}`)
+        .then(response => {
+            console.log(response.data);
+            navigation.navigate("AllFriends", {user_id: user_id});
+        })
+        .catch(error => {
+            console.log(error);
+            alert("Accept Friend Request Error: "+error);
+        })
+  }
 
   return (
     <TouchableOpacity 
         style={styles.container} 
         onPress={() => { 
                 navigation.navigate('Profile', {
-                        friendShip: friendShip
+                        friendShip: friendShip,
+                        user_id: user_id
                     })
                 }}
     >
@@ -23,10 +39,26 @@ const Friend = ({item, navigation, status}) => {
                 source={require('../../assets/adaptive-icon.png')}
                 style={styles.profilePhoto} 
             />
-            <Text style={styles.name}>{item.user_givenname + ' ' + item.user_familyname}</Text>
+            <View style={styles.nameContainer}>
+                <Text style={styles.name}>
+                    {item.first_name || item.user_givenname}
+                </Text>
+                <Text> </Text>
+                <Text style={styles.name}> 
+                    {item.last_name || item.user_familyname}                
+                </Text>
+            </View>
         </View>
         <View style={styles.actions}>
-            <Text style={styles.postsLink}>See Posts</Text>
+            <TouchableOpacity
+                    onPress={() => { 
+                        navigation.navigate('AllPosts', {
+                                user_id: item.user_id
+                            })
+                        }}
+            >
+                <Text style={styles.postsLink}>See Posts</Text>
+            </TouchableOpacity>
             {!friendShip && 
                 <View style={styles.requestResponse}>
                     <TouchableOpacity style={styles.friendsAction}>
@@ -37,7 +69,10 @@ const Friend = ({item, navigation, status}) => {
                         />
                         <Text>Reject</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.friendsAction}>
+                    <TouchableOpacity 
+                        style={styles.friendsAction}
+                        onPress={handleAccept}
+                    >
                         <MaterialIcons 
                             name="check-circle" 
                             size={32} 
@@ -71,6 +106,10 @@ const styles = StyleSheet.create({
         height: 100,
         borderRadius: 100 / 2,
         marginRight: 20,
+    },
+    nameContainer: {
+        flex: 1,
+        flexDirection: 'row',
     },
     name: {
         fontSize: 20,
