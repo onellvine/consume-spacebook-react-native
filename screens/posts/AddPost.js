@@ -6,7 +6,9 @@ import { Formik } from 'formik';
 import colors from '../../constants/colors';
 import Buttonx from '../../components/common/Buttonx';
 import PostsListHeader from '../../components/posts/PostsListHeader';
-import axiosInstance from '../../constants/axiosInstance';
+
+import addPost from '../../controllers/posts/posts.controller.addPost';
+import updatePost from '../../controllers/posts/posts.controller.updatePost';
 
 /*
 * This page will handle addition of new posts (API equivalent POST
@@ -38,27 +40,9 @@ const AddPost = ({navigation, route}) => {
                     : `/user/${user_id}/post/${ppost.post_id}`;
 
                 if (action === 'add') {
-                await axiosInstance
-                    .post(endpoint, post)
-                    .then(response => {
-                        console.log("response ",response.data);
-                        navigation.navigate('AllPosts', {user_id: user_id});
-                    })
-                    .catch(error => {
-                        console.log(error);
-                        alert("AddPost Error "+error);                        
-                    })
+                    addPost(endpoint, post, navigation, user_id);
                 } else {
-                    await axiosInstance
-                    .patch(endpoint, post)
-                    .then(response => {
-                        console.log("response ",response.data);
-                        navigation.navigate('AllPosts', {user_id: user_id});
-                    })
-                    .catch(error => {
-                        console.log(error);
-                        alert("AddPost Error "+error);
-                    })
+                    updatePost(endpoint, post, navigation, user_id);
                 }
             }}
         >

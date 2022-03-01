@@ -32,14 +32,21 @@ const Login = ({navigation}) => {
 
                         // send user id to retrieve their posts by default
                         navigation.navigate('AllPosts', {user_id: user_id});
-                        
+                        navigation.reset({
+                            index: 0,
+                            routes: [{ name: 'AllPosts' }],
+                        });
                     })
                     .catch(error => {
-                        console.log(error);
-                        alert("Login Error: "+error);
+                        if(error.response.status === 400) {
+                            alert("invalid email/password supplied");
+                        } else {
+                            console.log(error);
+                            alert("Login Error: "+error);
+                        }
                     });
                 
-                //actions.resetForm();
+                actions.resetForm();
             }}
         >
             {({ handleChange, handleBlur, handleSubmit, values }) => (
@@ -74,15 +81,9 @@ const Login = ({navigation}) => {
         <Text 
             style={styles.info} 
             onPress={() => {navigation.navigate('Home')}}
-            > Create an account here </Text>
-        <Text 
-            style={styles.info} 
-            onPress={() => { navigation.navigate('Profile', {me: true, friendShip: true})}}
-            > Profile </Text>
-        <Text 
-            style={styles.info} 
-            onPress={() => { navigation.navigate('AllFriends')}}
-            > Friends </Text>            
+        > 
+            Create an account here 
+        </Text>           
         </View>
         
     </ScrollView>

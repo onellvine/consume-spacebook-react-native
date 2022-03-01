@@ -41,7 +41,7 @@ const AllScreens = () => {
                 <stack.Screen 
                     options={({route}) => ({
                         header: () => (<Head />)})}
-                         name="Content"
+                         name="Home"
                          component={Home}
                 />
                 <stack.Screen 

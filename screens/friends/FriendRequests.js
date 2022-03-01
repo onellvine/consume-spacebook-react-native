@@ -5,8 +5,8 @@ import { useIsFocused } from "@react-navigation/native";
 
 import Friend from '../../components/friends/Friend';
 import colors from '../../constants/colors';
-import objects from '../../constants/objects';
-import axiosInstance from '../../constants/axiosInstance';
+import Loading from '../../components/common/Loading';
+import getAllFriendRequests from '../../controllers/friends/friends.controller.getFriendRequests';
 
 /*
 * This screen will list all oustanding friend requests
@@ -15,26 +15,17 @@ import axiosInstance from '../../constants/axiosInstance';
 
 const FriendRequests = ({navigation, route}) => {
   const isFocused = useIsFocused();
-  let user_id = route.params.user_id > 0 ? route.params.user_id : 0;
-  const [friends, setFriends] = useState(objects.friends);
+
+  const [loading, setLoading] = useState(false);
+  const [friends, setFriends] = useState([]);
 
   // procedure to get friends from API
   useEffect(async () => {
+    setLoading(true);
     if(isFocused) {
-      if(user_id != 0) {
-        await axiosInstance
-            .get("/friendrequests")
-            .then(response => {
-                console.log(response.data);
-                setFriends(response.data);
-            })
-            .catch(error => {
-                console.log(error);
-                alert("FriendRqeuests Error: "+error);
-            });
-      }
+      await getAllFriendRequests(setFriends);
     }
-
+    setLoading(false);
   }, [isFocused]);  
 
   const ListHeader = () => {
@@ -44,7 +35,9 @@ const FriendRequests = ({navigation, route}) => {
       </View>
     );
   }
-
+  if(loading) {
+    return (< Loading />);
+  } else {
   return (
     <FlatList 
         data={friends} 
@@ -52,7 +45,7 @@ const FriendRequests = ({navigation, route}) => {
         keyExtractor={(item) => item.user_id}
         ListHeaderComponent={ListHeader}
     /> 
-  )
+  )}
 }
 
 const styles = StyleSheet.create({

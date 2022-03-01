@@ -7,9 +7,9 @@ import * as SecureStore from 'expo-secure-store';
 
 import PostsListHeader from '../../components/posts/PostsListHeader';
 import Post from '../../components/posts/Post';
-import objects from '../../constants/objects'
 import colors from '../../constants/colors';
-import axiosInstance from '../../constants/axiosInstance';
+import Loading from '../../components/common/Loading';
+import getAllPosts from '../../controllers/posts/posts.controller.getAllPosts';
 
 
 /*
@@ -19,31 +19,23 @@ import axiosInstance from '../../constants/axiosInstance';
 
 const AllPosts = ({navigation, route}) => {
   const isFocused = useIsFocused();
-  let user_id = route.params.user_id;
-  const [posts, setPosts] = useState(objects.posts);
+  let [user_id, setUser_id] = useState(route.params == undefined ? null : route.params.user_id);
+
+  const [loading, setLoading] = useState(false);
+  const [posts, setPosts] = useState([]);
 
   useEffect(async () => {
+    // setLoading(true);
     if(user_id == null) {
-      user_id = await SecureStore.getItemAsync('user_id');
+      setUser_id(await SecureStore.getItemAsync('user_id'));
     }
-    if(isFocused) {
-      if(user_id != 0) {
-        await axiosInstance
-            .get(`/user/${user_id}/post`)
-            .then(response => {
-              console.log(response.data);
-              setPosts(response.data);
-            })
-            .catch(error => {
-              if(error.response.status === 403){
-                alert("Can only view the posts of yourself or your friends");
-              }
-              console.log(error);
-            })
-      }
-    }
-
+    // if(isFocused) {
+      await getAllPosts(user_id, setPosts);
+    // }
+    // setLoading(false);
   }, [isFocused]);
+
+  if(!loading){
 
   return (
     <View
@@ -80,7 +72,10 @@ const AllPosts = ({navigation, route}) => {
         />
       </TouchableOpacity>
     </View>
-  );
+  );}
+  else {
+    return (< Loading />);
+  }
 }
 
 const styles = StyleSheet.create({

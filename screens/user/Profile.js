@@ -6,21 +6,23 @@ import {
     Image, 
     ScrollView, 
     TextInput, 
-    Dimensions, 
-    Platform
+    Dimensions,
 } from 'react-native';
 
 import { Formik } from 'formik';
 import * as ImagePicker from 'expo-image-picker';
 import { useIsFocused } from "@react-navigation/native";
 import * as SecureStore from 'expo-secure-store';
-import axios from 'axios';
 
-import objects from '../../constants/objects';
 import colors from '../../constants/colors';
 import Buttonx from '../../components/common/Buttonx';
 import Action from '../../components/common/Action';
-import axiosInstance from '../../constants/axiosInstance';
+
+import getUserProfile from '../../controllers/users/users.controller.getUserProfile';
+import getUserPhoto from '../../controllers/users/users.controller.getUserPhoto';
+import uploadPhoto from '../../controllers/users/users.controller.uploadPhoto';
+import addFriend from '../../controllers/friends/friends.controller.addFriend';
+import updateUser from '../../controllers/users/users.controller.updateUser';
 
 /* 
 * This screen will show a users profile (API equivalent is /user/{user_id})
@@ -35,6 +37,7 @@ let hasProfilePhoto = false;
 const Profile = ({navigation, route, status}) => {
   const isFocused = useIsFocused();
   // state to set selected photo in the Image Component
+  const [hasGalleryPermission, setHasGalleryPermission] = useState(null);
   const [photo, setPhoto] = useState(null);
   
   // determine friendship to render the correct action
@@ -47,125 +50,87 @@ const Profile = ({navigation, route, status}) => {
     if(user_id == null) {
         user_id = await SecureStore.getItemAsync('user_id');
         setRelu(true);
+        // optionally check for gallery permissions
+        if (hasGalleryPermission == null) {
+            const galleryStatus = await ImagePicker.requestMediaLibraryPermissionsAsync();
+            setHasGalleryPermission(galleryStatus.status === 'granted');
+        }
     }
+
     if(isFocused) {
-      if(user_id != 0) {
-        // ge the user to display on the profile screen
-        await axiosInstance
-            .get(`/user/${user_id}`)
-            .then(response => {
-              console.log(response.data);
-              setUser(response.data);
-            })
-            .catch(error => {
-              console.log(error);
-              alert("Get User Error: "+error);
-            });
+        // get the user to display on the profile screen
+        await getUserProfile(user_id, setUser);
 
         // get the photo of the user to profile display
-        await axios
-            .get(`${objects.API_URL}/user/${user_id}/photo`, {
-                responseType: 'arraybuffer',
-                headers: {
-                    'X-Authorization': await SecureStore.getItemAsync("token"),
-                    'Content-Type': 'image/png'
-                }
-            })
-            .then(response => {
-                console.log(response.data);
-                setPhoto(response.data);
-            })
-            .catch(error => {
-                console.log(error);
-                alert(error);
-            });
-      }
+        await getUserPhoto(user_id, setPhoto);
     }
 
   }, [isFocused]);
-
-  const _pickImage = async (setFieldValue, field) => {
-
-    let result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.All,
+  
+   const pickImage = async () => {
+      let result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
         allowsEditing: true,
-        aspect: [4, 3],
-        quality: 1
-    })
+        aspect: [1, 1],
+        quality: 1,
+      });
 
-    if (!result.cancelled) {
-        setFieldValue(field, result.uri)
-    }
-  }
+      console.log(result);
+
+      if (!result.cancelled) {
+        setPhoto(result.uri);
+        uploadPhoto(result, user);
+      }
+   }
 
   return (
     <ScrollView contentContainerStyle={styles.containerFluid} keyboardShouldPersistTaps={'handled'}>
-      <Formik
-            initialValues={{ 
-                photo: photo != null ? photo : null,
-                first_name: '', 
-                last_name: '', 
-                email: '', 
+        <View style={styles.imageContainer}>
+            {photo && <Image source={{ uri: photo }} style={styles.image} />}
+            <Text style={[styles.friendsCount, {
+                position: route.params.user_id != null ? 'relative' : 'absolute', 
+                marginBottom: route.params.user_id != null ? 20 : 0,
+                }]}>
+                {user == null? 0: user.friend_count} Friends
+            </Text>
+            {relu && 
+            <View style={styles.infoGroup}>
+                <Action title="Choose Photo" 
+                    onPress={pickImage}
+                />
+            </View>}
+        </View>
+        
+        <Formik
+            enableReinitialize={true}
+            initialValues={{
+                first_name: (user != null ? user.first_name : ''), 
+                last_name: (user == null? 0: user.last_name), 
+                email: (user != null ? user.email: ''), 
                 password: '', 
                 password1: '' 
             }}
             onSubmit={async (values) => {
-                if (photo) {
-                    const splits = values.photo.split('.')
-                    const imageType = splits[splits.length - 1]
-                    const photoData = {
-                        uri: values.photo,
-                        type: `image/${imageType}`,
-                        name: `profile.${imageType}`
-                    };
-
-                    const data = new FormData();
-                    data.append('profile_photo', photoData);
-                    console.log("Data: ", data);
-
-                    await axios
-                        .post(`${objects.API_URL}/user/${user.user_id}/photo`, data, {
-                            headers: {
-                                'X-Authorization': await SecureStore.getItemAsync("token"),
-                                'Content-Type': 'image/png',
-                                'Accept': 'application/json',
-                            }
-                        })
-                        .then(response => {
-                            console.log(response.data);
-                        })
-                        .catch(error => {
-                            console.log(error);
-                            alert(error);
-                        });
-                    
+                // determine an update when real user (relu) is set
+                if(relu != null) {
+                    updateUser(values, user, navigation);
+                } // the button displayed is for adding friends
+                else {
+                    addFriend(user_id);
                 }
+                
             }}
-      >
-        {({ handleChange, handleBlur, handleSubmit, setFieldValue, values }) => (
+        >
+        {({ handleChange, handleBlur, handleSubmit, values }) => (
             <View style={styles.userInfo}>
-                <View style={styles.imageContainer}>
-                    {values.photo && <Image source={{ uri: values.photo }} style={styles.image} />}
-                    <Text style={[styles.friendsCount, {
-                        position: route.params.user_id != null ? 'relative' : 'absolute', 
-                        marginBottom: route.params.user_id != null ? 20 : 0,
-                        }]}>
-                        {user == null? 0: user.friend_count} Friends
-                    </Text>
-                    {relu && 
-                    <View style={styles.infoGroup}>
-                        <Action title="Choose Photo" 
-                            onPress={() => {_pickImage(setFieldValue, 'photo')}}
-                        />
-                    </View>}
-                </View>
+                
                 <View style={styles.infoGroup}>
                     <Text style={styles.infoTitle}>First Name</Text>
                     <TextInput 
                         style={styles.infoValue}
                         onChangeText={handleChange('first_name')} 
                         onBlur={handleBlur('first_name')}
-                        value={(user != null? user.first_name: '')}                                                   
+                        value={values.first_name}                                                   
                      />
                 </View>
                 <View style={styles.infoGroup}>
@@ -174,7 +139,7 @@ const Profile = ({navigation, route, status}) => {
                         style={styles.infoValue} 
                         onChangeText={handleChange('last_name')} 
                         onBlur={handleBlur('last_name')}
-                        value={(user != null? user.last_name: '')}                        
+                        value={values.last_name}                        
                          />
                 </View>
                 {relu && 
@@ -182,13 +147,32 @@ const Profile = ({navigation, route, status}) => {
                         <View style={styles.infoGroup}>
                             <Text style={styles.infoTitle}>Email</Text>
                             <TextInput 
-                                style={styles.infoValue} 
-                                placeholder='ashley.williams@mmu.ac.uk'
+                                style={styles.infoValue}
                                 onChangeText={handleChange('email')} 
                                 onBlur={handleBlur('email')}
-                                value={(user != null? user.email: '')}                         
+                                value={values.email}                         
                                 />
-                        </View>                        
+                        </View>
+                        <View style={styles.infoGroup}>
+                            <Text style={styles.infoTitle}>Password</Text>
+                            <TextInput 
+                                style={styles.infoValue} 
+                                secureTextEntry
+                                onChangeText={handleChange('password')}
+                                onBlur={handleBlur('password')}
+                                value={values.password} 
+                                />
+                        </View>
+                        <View style={styles.infoGroup}>
+                            <Text style={styles.infoTitle}>Repeat Password</Text>
+                            <TextInput
+                                style={styles.infoValue}
+                                secureTextEntry
+                                onChangeText={handleChange('password1')}
+                                onBlur={handleBlur('password1')}
+                                value={values.password1}                                
+                                />
+                        </View>                       
                         <Buttonx 
                             style={styles.btnProfile} 
                             onPress={handleSubmit} 
@@ -201,10 +185,6 @@ const Profile = ({navigation, route, status}) => {
             </View>
         )}
       </Formik>
-      <Text 
-            style={styles.info} 
-            onPress={() => { navigation.navigate('Home')}}
-            > Exit </Text>
     </ScrollView>
   );
 }
@@ -229,12 +209,14 @@ const styles = StyleSheet.create({
         textAlign: 'left',
         fontSize: 18,
         width: Dimensions.get('window').width,
-        paddingLeft: 18,
+        paddingLeft: 10,
         position: 'absolute',
         top: hasProfilePhoto ? (Dimensions.get('window').width / 2) - 10 : 10,
         color: hasProfilePhoto ?'#fff' : colors.themes.accent,
     },
-
+    userInfo: {
+        flex: 1,
+    },
     infoGroup: {
         flex: 1,
         flexDirection: 'row',
@@ -254,7 +236,7 @@ const styles = StyleSheet.create({
         color: colors.text.accent,
         marginHorizontal: 0,
         padding: 0,
-        width: 100,
+        width: '50%',
     },
     info: {
         fontSize: 15,

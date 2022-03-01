@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, FlatList } from 'react-native';
+import { FlatList } from 'react-native';
 
 import { useIsFocused } from "@react-navigation/native";
 
 import FriendListHeader from '../../components/friends/FriendsListHeader';
 import Friend from '../../components/friends/Friend';
-import objects from '../../constants/objects';
-import axiosInstance from '../../constants/axiosInstance';
-
+import Loading from '../../components/common/Loading'
+import getAllFriends from '../../controllers/friends/friends.controller.getAllFriends';
 /*
 * This screen will list all friends of the user
 */
@@ -16,31 +15,13 @@ const AllFriends = ({navigation, route}) => {
   const isFocused = useIsFocused();
   let user_id = route.params.user_id > 0 ? route.params.user_id : 0;
   const passedFriends = route.params.friends;
-  console.log("passed\n"+JSON.stringify(passedFriends));
-  const [friends, setFriends] = useState(objects.friends);
+  
+  const [friends, setFriends] = useState([]);
   
   // procedure to get friends from API
   useEffect(async () => {
-    if(isFocused) {
-      if(user_id != 0) {
-        await axiosInstance
-            .get(`/user/${user_id}/friends`)
-            .then(response => {
-              console.log(response.data);
-              if(passedFriends == null) {
-                setFriends(response.data);
-              } else {
-                setFriends(passedFriends);
-              }
-            })
-            .catch(error => {
-              console.log(error);
-            })
-      } 
-    }
-
+      await getAllFriends(user_id, passedFriends, setFriends);
   }, [isFocused]);
-
 
   return (
       <FlatList 
@@ -49,7 +30,8 @@ const AllFriends = ({navigation, route}) => {
         keyExtractor={(item) => item.user_id}
         ListHeaderComponent={<FriendListHeader navigation={navigation} user_id={user_id}/>}
       /> 
-  );
+  )
+  
 }
 
 

@@ -1,42 +1,43 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, TouchableOpacity, Image, View } from 'react-native';
 
 import { MaterialIcons } from '@expo/vector-icons';
 
 import colors from '../../constants/colors';
-import axiosInstance from '../../constants/axiosInstance';
+
+import getUserPhoto from '../../controllers/users/users.controller.getUserPhoto';
+import acceptRequest from '../../controllers/friends/friends.controller.acceptRequest';
+import rejectRequest from '../../controllers/friends/friends.controller.rejectRequest';
 
 const Friend = ({navigation, item, status}) => {
+  // load the profile photo of the item
+  const [photo, setPhoto] = useState(null);
+
+  useEffect(async ()=>{
+    getUserPhoto(item.user_id, setPhoto);
+  }, []);
+
   // determine friendships to render the correct action
   const user_id = item.user_id;
   const friendShip = (status === 'friends');
 
-  const handleAccept = async () => {
-      await axiosInstance
-        .post(`/friendrequests/${user_id}`)
-        .then(response => {
-            console.log(response.data);
-            navigation.navigate("AllFriends", {user_id: user_id});
-        })
-        .catch(error => {
-            console.log(error);
-            alert("Accept Friend Request Error: "+error);
-        })
-  }
+  const handleAccept = async () => { acceptRequest(user_id, navigation) }
+
+  const handleReject = async () => { rejectRequest(user_id, navigation) }
 
   return (
     <TouchableOpacity 
         style={styles.container} 
         onPress={() => { 
-                navigation.navigate('Profile', {
-                        friendShip: friendShip,
-                        user_id: user_id
-                    })
-                }}
+            navigation.navigate('Profile', {
+                    friendShip: friendShip,
+                    user_id: user_id
+            })
+        }}
     >
         <View style={styles.bio}>
             <Image 
-                source={require('../../assets/adaptive-icon.png')}
+                source={{uri: photo}}
                 style={styles.profilePhoto} 
             />
             <View style={styles.nameContainer}>
@@ -61,7 +62,10 @@ const Friend = ({navigation, item, status}) => {
             </TouchableOpacity>
             {!friendShip && 
                 <View style={styles.requestResponse}>
-                    <TouchableOpacity style={styles.friendsAction}>
+                    <TouchableOpacity 
+                        style={styles.friendsAction}
+                        onPress={handleReject}
+                    >
                         <MaterialIcons 
                             name="dangerous" 
                             size={32} 
@@ -102,9 +106,9 @@ const styles = StyleSheet.create({
         margin: 0,
     },
     profilePhoto: {
-        width: 100,
-        height: 100,
-        borderRadius: 100 / 2,
+        width: 80,
+        height: 80,
+        borderRadius: 80 / 2,
         marginRight: 20,
     },
     nameContainer: {
@@ -120,7 +124,8 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        margin: 0,
+        marginVertical: 5,
+        marginHorizontal: 5,
     },
     postsLink: {
         fontSize: 18,

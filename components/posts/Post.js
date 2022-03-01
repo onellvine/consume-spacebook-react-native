@@ -7,6 +7,8 @@ import * as SecureStore from 'expo-secure-store';
 import colors from '../../constants/colors';
 import axiosInstance from '../../constants/axiosInstance';
 
+import likePost from '../../controllers/posts/posts.controller.likePost';
+
 const Post = ({navigation, item}) => {
   const user_id = item.author.user_id;
   const post_id = item.post_id;
@@ -19,19 +21,7 @@ const Post = ({navigation, item}) => {
         alert("Can only like the posts of your friends");
         return;
       }      
-      await axiosInstance
-        .post(`/user/${user_id}/post/${post_id}/like`)
-        .then(response => {
-            console.log(response.data);
-            setLiked(response.status);
-            navigation.push("AllPosts", {user_id: user_id});
-        })
-        .catch(error => {
-            if(error.response.status === 403) {
-                alert("Forbidden - You have already liked this post");
-            }
-            console.log(error);  
-        })
+      likePost(user_id, post_id, setLiked, navigation);
   }
 
   return (

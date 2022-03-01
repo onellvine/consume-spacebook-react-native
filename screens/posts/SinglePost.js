@@ -7,7 +7,9 @@ import { useIsFocused } from "@react-navigation/native";
 
 import colors from '../../constants/colors';
 import PostsListHeader from '../../components/posts/PostsListHeader';
-import axiosInstance from '../../constants/axiosInstance';
+
+import deletePost from '../../controllers/posts/posts.controller.deletePost';
+import dislikePost from '../../controllers/posts/posts.controller.dislikePost';
 
 const SinglePost = ({navigation, route}) => {
   const isFocused = useIsFocused();
@@ -37,33 +39,11 @@ const SinglePost = ({navigation, route}) => {
     if(user_id == null) {
       user_id = await SecureStore.getItemAsync('user_id');
     }
-    await axiosInstance
-      .delete(`/user/${user_id}/post/${post.post_id}`)
-      .then(response => {
-        console.log(response);
-        navigation.navigate('AllPosts', {user_id: user_id});
-      })
-      .catch(error => {
-        console.log(error);
-        alert("Delete Post Error "+error); 
-      });
-
+    deletePost(user_id, post, navigation);
   }
 
   const handleDislike = async () => {    
-    await axiosInstance
-      .delete(`/user/${user_id}/post/${post.post_id}/like`)
-      .then(response => {
-        console.log("remove like"+ response.data);
-      })
-      .catch(error => {
-        if(error.response.status === 403) {
-          alert("Forbidden - you have not liked this post");
-        } else{
-          alert(error);
-        }
-        console.log(error);        
-      });
+    dislikePost(user_id, post)
   }
 
   return (

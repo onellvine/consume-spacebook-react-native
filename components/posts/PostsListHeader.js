@@ -24,7 +24,7 @@ const PostsListHeader = ({navigation, title, payload}) => {
               <TouchableOpacity 
                   style={styles.friendRequest} 
                   onPress={() => { navigation.navigate('AddPost', 
-                    {friendShip: null, user_id: user_id})}}
+                    {action:'add', friendShip: null, user_id: user_id})}}
               >
                   <FontAwesome5 name="edit" size={32} color={colors.text.accent} />
               </TouchableOpacity>

@@ -33,7 +33,7 @@ const Home = ({navigation}) => {
                         alert(error);
                     })
 
-                //actions.resetForm();
+                actions.resetForm();
             }}
         >
             {({ handleChange, handleBlur, handleSubmit, values }) => (
